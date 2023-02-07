@@ -85,24 +85,25 @@
     }
   </style>
   <script type='text/javascript'>
-    var Grid;
+    function Coords( I, J, Count ) {
+      this.I = I;
+      this.J = J;
+    } //Coords
+
+    var Grid, Digits;
 
     //-------------------------------------------------------------------------
     window.onload = function() {
       ResetBoard();
 
       document.getElementById( "messages" ).innerHTML =
-        "Enter digits into the grid above and press the 'Solve' button to " +
-        "solve,<br />" +
-        "or try the 'Show Example' button.";
+        "Enter digits into the grid above or press the 'Show Example' button, <br />" +
+        "then press the 'Solve' button.";
         
     };//Onload
 
     //-------------------------------------------------------------------------
     function ResetBoard() {
-      //Set up grid.
-      Grid = new Array(9).fill( new Array(9).fill(null) );
-
       let div = document.getElementById( "board_area" );
 
       let table = document.createElement( "TABLE" );
@@ -145,7 +146,140 @@
     } //ResetBoard
 
     //-------------------------------------------------------------------------
-    function Solve( Cell ) {
+    function Solve() {
+      //Set up grid.
+      Grid = new Array(9).fill( new Array(9).fill(null) );
+
+      for( let i = 0; i < 9; i++ ) {
+        for( let j = 0; j < 9; j++ ) {
+          let cell_name = "cell_" + i + '' + j;
+          let value = document.getElementById( cell_name ).value;
+          Grid[i][j] = parseInt( value );
+          if( isNaN(Grid[i][j]) )
+            Grid[i][j] == null;
+        }
+      }
+
+      //Set up digits array.
+      Digits = new Array(9).fill( new Array(9).fill( new Array(9).fill(null) ) );
+
+      //Find one of the easiest cells to solve.
+      let Cell;
+      let LowestDigitsCount = 10;
+/*
+  for( int i = 0; i < 9; i++ ) {
+    for( int j = 0; j < 9; j++ ) {
+      if( Grid[i][j] == EMPTY ) {
+        int count = 0, last_value;
+        for( int k = 0; k < 9; k++ )
+          if( Digits[i][j][k] == true ) {
+            count++;
+            last_value = k + 1;
+          }
+
+        //If no eligible digits for this cell, the grid is invalid.
+        if( count == 0 ) {
+          return false;
+        }
+        else if( count == 1 ) {  //Only one possible value for the cell
+          //Test setting this value.
+          SetValue( Grid, Digits, i+1, j+1, last_value );
+
+          //Check if this newly-set value is valid in the grid.
+          int  bad_val;
+          if( ! IsValidRow(Grid, i, bad_val) ||
+              ! IsValidCol(Grid, j, bad_val) ||
+              ! IsValidBlock(Grid, (i/3*3+j/3), bad_val) ) {
+            return false;
+          }
+
+          //It's good -- permanently set the value.
+          SetValue( Grid, Digits, i+1, j+1, last_value, true );
+        }
+        else if( count < LowestDigitsCount ) {
+          LowestDigitsCount = count;
+          Cell.I = i;
+          Cell.J = j;
+        }
+      }
+    }
+  }
+
+  if( LowestDigitsCount == 10 ) {
+    //No cells left with digits to determine. All cells are set.
+    return true;
+  }
+
+  //Go through possible values for the selected cell.
+  char** TempGrid = MakeNewGrid();
+  bool*** TempDigits = MakeNewDigitsArray();
+  for( int k = 0; k < 9; k++ ) {
+    if( Digits[Cell.I][Cell.J][k] ) {
+      CopyGrid( Grid, TempGrid );
+      CopyDigitsArray( Digits, TempDigits );
+
+      //Test setting this value.
+      SetValue( TempGrid, TempDigits, Cell.I+1, Cell.J+1, k+1, true );
+
+      //Check if this newly-set value is valid in the grid.
+      int  bad_val;
+      if( ! IsValidRow(Grid, Cell.I, bad_val) ||
+          ! IsValidCol(Grid, Cell.J, bad_val) ||
+          ! IsValidBlock(Grid, (Cell.I/3*3+Cell.J/3), bad_val) ) {
+        //Delete temporary grid.
+        for( int i = 0; i < 9; i++ )
+          delete [] TempGrid[i];
+        delete [] TempGrid;
+
+        for( int i = 0; i < 9; i++ ) {
+          for( int j = 0; j < 9; j++ )
+            delete [] TempDigits[i][j];
+          delete [] TempDigits[i];
+        }
+        delete [] TempDigits;
+
+        return false;
+      }
+
+ShowGrid(TempGrid); //AAA
+char a;             //AAA
+cin >> a;           //AAA
+
+      if( Solve(TempGrid, TempDigits) ) {
+        CopyGrid( TempGrid, Grid );
+        CopyDigitsArray( TempDigits, Digits );
+
+        //Delete temporary grid.
+        for( int i = 0; i < 9; i++ )
+          delete [] TempGrid[i];
+        delete [] TempGrid;
+
+        for( int i = 0; i < 9; i++ ) {
+          for( int j = 0; j < 9; j++ )
+            delete [] TempDigits[i][j];
+          delete [] TempDigits[i];
+        }
+        delete [] TempDigits;
+
+        return true;
+      }
+    }
+  }  //End loop through k
+
+  //Delete temporary grid.
+  for( int i = 0; i < 9; i++ )
+    delete [] TempGrid[i];
+  delete [] TempGrid;
+
+  for( int i = 0; i < 9; i++ ) {
+    for( int j = 0; j < 9; j++ )
+      delete [] TempDigits[i][j];
+    delete [] TempDigits[i];
+  }
+  delete [] TempDigits;
+
+  return false;
+*/
     } //Solve
 
     //-------------------------------------------------------------------------
@@ -154,17 +288,42 @@
 
     //-------------------------------------------------------------------------
     function PrintGrid( Grid ) {
-      let line = '';
-      for( let i = 0; i < 9; i++ )
-        line += Grid[i];
+
+      for( let i = 0; i < 9; i++ ) {
+        let line;
+        if( i == 0 ) {  //Write column headers
+          line += "  ";
+          for( let j = 1; j <= 9; j++ ) {
+            line += j + ' ';
+            if( j % 3 == 0 ) cout << ' ';
+          }
+          console.log( line );
+        }
+
+        if( i % 3 == 0 ) {         //Write row dividers
+          line = "  ";
+          for( let j = 0; j < (9*2)+2; j++ )
+            line += "-";
+          console.log( line );
+        }
+
+        line = (i+1);
+        for( let j = 0; j < 9; j++ ) {
+          if( j % 3 == 0 ) line += '|';
+          if( Grid[i][j] == null )
+            line += ". ";
+          else
+            line += Grid[i][j] + ' ';
+        }
+        console.log( line );
+
+      }
+
     } //PrintGrid
+
 /*
 const int EMPTY = 0;
 enum Dimensions { ROW, COL, BLOCK };
-
-struct Coords {
-  int I, J, Count;
-};
 
 void ShowGrid( char** Grid );
 char ParseCommand( string s, int &Row, int &Col, int &Value );
@@ -244,13 +403,6 @@ SetValue( Grid, Digits, 9, 3, 2, true );
 SetValue( Grid, Digits, 9, 7, 3, true );
 //AAA
 
-  //Get initial grid setup from user.
-  string s;
-  char   command = '?';
-  int    row, col;
-  int    val;
-  ShowGrid( Grid );
-  
   do {
     if( command == '?' )
       cout << "\nPlease enter the initial setup of the puzzle. Type:\n"
@@ -282,10 +434,6 @@ SetValue( Grid, Digits, 9, 7, 3, true );
              << endl;
     }
 
-    cout << "Command: ";
-    getline( cin, s );
-    command = ParseCommand( s, row, col, val );
-
     if( command != 'a' && command != 'd' && command != 'p' &&
         command != 's' && command != '?' && command != 'q' ) {
       cout << "** Unrecognized command! Please try again. ** " << endl;
@@ -300,11 +448,6 @@ SetValue( Grid, Digits, 9, 7, 3, true );
     }
   } while( command != 's' && command != 'q' );
 
-  if( command == 'q' ) {
-    cout << "Bye!" << endl;
-    return 0;    
-  }
-
   //Solve the puzzle.
   bool Solved = Solve( Grid, Digits );
 
@@ -314,71 +457,6 @@ SetValue( Grid, Digits, 9, 7, 3, true );
   }
   else
     cout << "Sorry! The puzzle is unsolvable." << endl;
-
-  //Clean up.
-  for( int i = 0; i < 9; i++ )
-    delete [] Grid[i];
-  delete [] Grid;
-
-  for( int i = 0; i < 9; i++ ) {
-    for( int j = 0; j < 9; j++ )
-      delete [] Digits[i][j];
-    delete [] Digits[i];
-  }
-  delete [] Digits;
-
-  return 0;
-} //main
-
-//---------------------------------------------------------------------------
-char ParseCommand( string s, int &Row, int &Col, int &Value ) {
-  char c;
-  istringstream is( s );
-  is >> c;
-  c = tolower( c );
-
-  if( c == '?' || c == 's' || c == 'p' || c == 'q' )
-    return c;
-
-  if( c == 'a' )
-    is >> Row >> Col >> Value;
-  else if( c == 'd' )
-    is >> Row >> Col;
-
-  return c;
-} //ParseCommand
-
-//---------------------------------------------------------------------------
-void ShowGrid( char** Grid ) {
-  for( int i = 0; i < 9; i++ ) {
-    if( i == 0 ) {  //Write column headers
-      cout << "  ";
-      for( int j = 1; j <= 9; j++ ) {
-        cout << j;
-        cout << ' ';
-        if( j % 3 == 0 ) cout << ' ';
-      }
-      cout << endl;
-    }
-
-    if( i % 3 == 0 ) {         //Write row dividers
-      cout << "  ";
-      for( int j = 0; j < (9*2)+2; j++ )
-        cout << "-";
-      cout << endl;
-    }
-
-    cout << (i+1);
-    for( int j = 0; j < 9; j++ ) {
-      if( j % 3 == 0 ) cout << '|';
-      if( Grid[i][j] == EMPTY )
-        cout << ". ";
-      else
-        cout << (int) Grid[i][j] << ' ';
-    }
-    cout << endl;
-  }
-} //ShowGrid
 
 //---------------------------------------------------------------------------
 bool CheckGrid( char** Grid, bool Verbose ) {
@@ -592,124 +670,6 @@ void  CopyDigitsArray( bool*** Digits1, bool*** Digits2 ) {
         Digits2[i][j][k] = Digits1[i][j][k];
 } //CopyDigitsArray
 
-//---------------------------------------------------------------------------
-bool Solve( char** Grid, bool*** Digits ) {
-  //Find one of the easiest cells to solve.
-  Coords Cell;
-  int LowestDigitsCount = 10;
-  for( int i = 0; i < 9; i++ ) {
-    for( int j = 0; j < 9; j++ ) {
-      if( Grid[i][j] == EMPTY ) {
-        int count = 0, last_value;
-        for( int k = 0; k < 9; k++ )
-          if( Digits[i][j][k] == true ) {
-            count++;
-            last_value = k + 1;
-          }
-
-        //If no eligible digits for this cell, the grid is invalid.
-        if( count == 0 ) {
-          return false;
-        }
-        else if( count == 1 ) {  //Only one possible value for the cell
-          //Test setting this value.
-          SetValue( Grid, Digits, i+1, j+1, last_value );
-
-          //Check if this newly-set value is valid in the grid.
-          int  bad_val;
-          if( ! IsValidRow(Grid, i, bad_val) ||
-              ! IsValidCol(Grid, j, bad_val) ||
-              ! IsValidBlock(Grid, (i/3*3+j/3), bad_val) ) {
-            return false;
-          }
-
-          //It's good -- permanently set the value.
-          SetValue( Grid, Digits, i+1, j+1, last_value, true );
-        }
-        else if( count < LowestDigitsCount ) {
-          LowestDigitsCount = count;
-          Cell.I = i;
-          Cell.J = j;
-        }
-      }
-    }
-  }
-
-  if( LowestDigitsCount == 10 ) {
-    //No cells left with digits to determine. All cells are set.
-    return true;
-  }
-
-  //Go through possible values for the selected cell.
-  char** TempGrid = MakeNewGrid();
-  bool*** TempDigits = MakeNewDigitsArray();
-  for( int k = 0; k < 9; k++ ) {
-    if( Digits[Cell.I][Cell.J][k] ) {
-      CopyGrid( Grid, TempGrid );
-      CopyDigitsArray( Digits, TempDigits );
-
-      //Test setting this value.
-      SetValue( TempGrid, TempDigits, Cell.I+1, Cell.J+1, k+1, true );
-
-      //Check if this newly-set value is valid in the grid.
-      int  bad_val;
-      if( ! IsValidRow(Grid, Cell.I, bad_val) ||
-          ! IsValidCol(Grid, Cell.J, bad_val) ||
-          ! IsValidBlock(Grid, (Cell.I/3*3+Cell.J/3), bad_val) ) {
-        //Delete temporary grid.
-        for( int i = 0; i < 9; i++ )
-          delete [] TempGrid[i];
-        delete [] TempGrid;
-
-        for( int i = 0; i < 9; i++ ) {
-          for( int j = 0; j < 9; j++ )
-            delete [] TempDigits[i][j];
-          delete [] TempDigits[i];
-        }
-        delete [] TempDigits;
-
-        return false;
-      }
-
-ShowGrid(TempGrid); //AAA
-char a;             //AAA
-cin >> a;           //AAA
-
-      if( Solve(TempGrid, TempDigits) ) {
-        CopyGrid( TempGrid, Grid );
-        CopyDigitsArray( TempDigits, Digits );
-
-        //Delete temporary grid.
-        for( int i = 0; i < 9; i++ )
-          delete [] TempGrid[i];
-        delete [] TempGrid;
-
-        for( int i = 0; i < 9; i++ ) {
-          for( int j = 0; j < 9; j++ )
-            delete [] TempDigits[i][j];
-          delete [] TempDigits[i];
-        }
-        delete [] TempDigits;
-
-        return true;
-      }
-    }
-  }  //End loop through k
-
-  //Delete temporary grid.
-  for( int i = 0; i < 9; i++ )
-    delete [] TempGrid[i];
-  delete [] TempGrid;
-
-  for( int i = 0; i < 9; i++ ) {
-    for( int j = 0; j < 9; j++ )
-      delete [] TempDigits[i][j];
-    delete [] TempDigits[i];
-  }
-  delete [] TempDigits;
-
-  return false;
-} //Solve
 */
   </script>
 </head>
