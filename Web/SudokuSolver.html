@@ -93,7 +93,7 @@
   </style>
   <script type='text/javascript'>
     var Grid, Digits;
-    var Depth = 0; //AAA for debugging
+    var SolveCallDepth = 0;  //Safety for recursive calls
 
     //-------------------------------------------------------------------------
     window.onload = function() {
@@ -146,6 +146,7 @@
 
     //-------------------------------------------------------------------------
     function ResetBoard() {
+      SolveCallDepth = 0;
       for( let i = 0; i < 9; i++ ) {
         for( let j = 0; j < 9; j++ ) {
           let cell_name = "cell_" + i + '' + j;
@@ -195,9 +196,15 @@
 
     //-------------------------------------------------------------------------
     function Solve( Grid, Digits ) {
-Depth++;                      //AAA
-console.log( "Depth="+Depth ); //AAA
-if( Depth > 30 ) return false; //AAA
+      //await Sleep( 1000 );
+
+      //Recursive call safety stop.
+      SolveCallDepth++;
+      if( SolveCallDepth > 100 ) {
+        console.log( "Solve: ** Call iteration too deep! **" );
+        SolveCallDepth--;
+        return false;
+      }
 
       //Find one of the easiest cells to solve.
       let Cell = { I:null, J:null };
@@ -218,16 +225,20 @@ if( Depth > 30 ) return false; //AAA
               //ShowMessage( "The grid is not solvable. " +
               //             "Edit it, clear it, or try an example. " +
               //             "Then try solving it again." );
+              SolveCallDepth--;
               return false;
             }
             else if( count == 1 ) {  //Only one possible value for the cell
               //Test setting this value.
               SetValue( Grid, Digits, i+1, j+1, last_value );
+              SetDigitInPage( i+1, j+1, last_value );
 
               //Check if this newly-set value is valid in the grid.
               if( ! IsValidRow(i) ||
                   ! IsValidCol(j) ||
                   ! IsValidBlock((Math.floor(i/3)*3+Math.floor(j/3))) ) {
+                SetDigitInPage( i+1, j+1, null );
+                SolveCallDepth--;
                 return false;
               }
 
@@ -246,12 +257,12 @@ if( Depth > 30 ) return false; //AAA
       if( LowestDigitsCount == 10 ) {
         //No cells left with digits to determine. All cells are set.
         //ShowMessage( "Solved!" );
+        SolveCallDepth--;
         return true;
       }
 
       //Go through possible values for the selected cell.
       let TempGrid = MakeNewGrid();
-
       let TempDigits = MakeNewDigitsArray();
 
       for( let k = 0; k < 9; k++ ) {
@@ -261,31 +272,54 @@ if( Depth > 30 ) return false; //AAA
 
           //Test setting this value.
           SetValue( TempGrid, TempDigits, Cell.I+1, Cell.J+1, k+1, true );
+          SetDigitInPage( Cell.I+1, Cell.J+1, k+1 );
 
           //Check if this newly-set value is valid in the grid.
           if( ! IsValidRow(Cell.I) ||
               ! IsValidCol(Cell.J) ||
               ! IsValidBlock((Math.floor(Cell.I/3)*3+Math.floor(Cell.J/3))) ) {
+            SetDigitInPage( Cell.I+1, Cell.J+1, null );
+            SolveCallDepth--;
             return false;
           }
-
-// ShowGrid(TempGrid); //AAA
-// char a;             //AAA
-// cin >> a;           //AAA
 
           if( Solve(TempGrid, TempDigits) ) {
             CopyGrid( TempGrid, Grid );
             CopyDigitsArray( TempDigits, Digits );
 
+            SolveCallDepth--;
             return true;
           }
         }
       }  //End loop through k
 
-      //UnlockBoard();
+      SetDigitInPage( Cell.I+1, Cell.J+1, null );
 
+      SolveCallDepth--;
       return false;
     } //Solve
+
+    /*-------------------------------------------------------------------------
+      Sleep
+      See https://stackoverflow.com/questions/951021/
+                  what-is-the-javascript-version-of-sleep
+      Use it like this:
+        await Sleep( 1000 );
+      The function it is used in must be async.
+    */
+    function Sleep( MS ) {
+      return new Promise( resolve => setTimeout(resolve, MS) );
+    } //Sleep
+
+    //-------------------------------------------------------------------------
+    function SetDigitInPage( Row, Col, Value ) {
+      if( Value == null )
+        Value = "";
+
+      let cell = "cell_" + (Row-1) + '' + (Col-1);
+
+      document.getElementById( cell ).value = Value;
+    } //SetDigitInPage
 
     //-------------------------------------------------------------------------
     function PrintGrid( Grid ) {
@@ -327,9 +361,6 @@ if( Depth > 30 ) return false; //AAA
           Grid[Row-1][Col-1] = Value;
 
           if( Permanent ) {
-            console.log( "SetValue 1: Working on cell (" +
-                         (Row-1) + ", " + (Col-1) + ")" );
-
             //Remove any other possible value for this cell.
             for( let k = 0; k < 9; k++ ) {
               if( k == Value-1 )
@@ -338,8 +369,6 @@ if( Depth > 30 ) return false; //AAA
                 Digits[Row-1][Col-1][k] = false;
             }
 
-// for( let k = 0; k < 9; k++ )
-//   console.log( Digits[0][0][k] );
             //Remove value in other col cells.
             for( let i = 0; i < 9; i++ )
               if( i != Row-1 )
@@ -383,7 +412,6 @@ if( Depth > 30 ) return false; //AAA
         seen[k] = false;
 
       for( let j = 0; j < 9; j++ ) {
-        //console.log( "IsValidRow 1: Index=" + Index + " j=" + j );
         Value = Grid[Index][j];
         if( Value != null ) {
           if( ! seen[Value-1] )
@@ -435,8 +463,6 @@ if( Depth > 30 ) return false; //AAA
         for( let j = 0; j < 3; j++ ) {
           let r = Math.floor( Index/3 ) * 3 + i;
           let c =  Index % 3 * 3 + j;
-          console.log( "IsValidBlock 1: Index=" + Index +
-                       " i=" + i + " j=" + j + " r=" + r + " c=" + c );
           Value = Grid[r][c];
           if( Value != null ) {
             if( ! seen[Value-1] )
@@ -531,8 +557,10 @@ if( Depth > 30 ) return false; //AAA
     } //CheckGrid
 
     //-------------------------------------------------------------------------
-    function AttemptSolve() {
-      //LockBoard();
+    async function AttemptSolve() {
+      LockBoard();
+
+      //await Sleep( 1000 );
 
       //Set up grid.
       Grid = MakeNewGrid();
@@ -544,8 +572,6 @@ if( Depth > 30 ) return false; //AAA
           let cell_name = "cell_" + i + '' + j;
           let value = document.getElementById( cell_name ).value;
           if( value != '' && ! isNaN(value) ) {
-            console.log( "AttemptSolve 1: Setting value for ("+i+", "+j+") to "+
-                         value );
             SetValue( Grid, Digits, i+1, j+1, value, true );
           }
           else
@@ -553,6 +579,7 @@ if( Depth > 30 ) return false; //AAA
         }
       }
 
+      console.log( "BEFORE:" );
       PrintGrid( Grid );
 
       //Check current grid setup is valid.
@@ -560,20 +587,17 @@ if( Depth > 30 ) return false; //AAA
         ShowMessage( "The grid is invalid! " +
                      "Please check it and try again." );
       }
-      else {
-        //Solve the puzzle.
-        let Solved = Solve( Grid, Digits );
-
-        if( Solved ) {
+      else { //Solve the puzzle.
+        if( Solve( Grid, Digits ) )
           ShowMessage( "Solved!", true );
-          PrintGrid( Grid );
-        }
         else
           ShowMessage( "Sorry! The puzzle is unsolvable.", true );
-          PrintGrid( Grid );
+
+        console.log( "AFTER:" );
+        PrintGrid( Grid );
       }
 
-      //UnlockBoard();
+      UnlockBoard();
     } //AttemptSolve
 
     //-------------------------------------------------------------------------
