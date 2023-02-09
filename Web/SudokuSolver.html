@@ -86,18 +86,19 @@
     }
     #messages {
       padding-top:10px;
+      height:60px;
       font-size:14pt;
       color:black;
     }
   </style>
   <script type='text/javascript'>
     var Grid, Digits;
+    var Depth = 0; //AAA for debugging
 
     //-------------------------------------------------------------------------
     window.onload = function() {
       SetUpBoard();
       Clear();
-        
     };//Onload
 
     //-------------------------------------------------------------------------
@@ -176,46 +177,27 @@
     //-------------------------------------------------------------------------
     function Clear() {
       ResetBoard();
-      UnlockBoard();
 
-      document.getElementById( "messages" ).innerHTML =
-        "Enter digits into the grid above or press the 'Show Example' button, <br />" +
-        "then press the 'Solve' button.";
-
-      document.getElementById( "clear_btn" ).style.visibility = "hidden";
+      ShowMessage( "Enter digits into the grid above or press the " +
+                   "'Show Example' button, <br />" +
+                   "then press the 'Solve' button.", false );
     } //Clear
 
     //-------------------------------------------------------------------------
-    function ShowMessage( Msg ) {
+    function ShowMessage( Msg, ShowClearBtn=true ) {
       UnlockBoard();
 
       document.getElementById( "messages" ).innerHTML = Msg;
 
-      document.getElementById( "clear_btn" ).style.visibility = "visible";
+      document.getElementById( "clear_btn" ).style.visibility =
+                                         (ShowClearBtn ? 'visible' : 'hidden');
     } //ShowMessage
 
     //-------------------------------------------------------------------------
-    function Solve() {
-      LockBoard();
-
-      //Set up grid.
-      Grid = MakeNewGrid();
-
-      //Set up digits array.
-      Digits = MakeNewDigitsArray();
-      for( let i = 0; i < 9; i++ ) {
-        for( let j = 0; j < 9; j++ ) {
-          let cell_name = "cell_" + i + '' + j;
-          let value = document.getElementById( cell_name ).value;
-          if( value != '' && ! isNaN(value) ) {
-            console.log( "Solve 1: Setting value for ("+i+", "+j+") to "+
-                         value );
-            SetValue( Grid, Digits, i+1, j+1, value, true );
-          }
-          else
-            Grid[i][j] = null;
-        }
-      }
+    function Solve( Grid, Digits ) {
+Depth++;                      //AAA
+console.log( "Depth="+Depth ); //AAA
+if( Depth > 30 ) return false; //AAA
 
       //Find one of the easiest cells to solve.
       let Cell = { I:null, J:null };
@@ -233,10 +215,10 @@
 
             //If no eligible digits for this cell, the grid is invalid.
             if( count == 0 ) {
-              ShowMessage( "The grid is not solvable. " +
-                           "Edit it, clear it, or try an example. " +
-                           "Then try solving it again." );
-              return;
+              //ShowMessage( "The grid is not solvable. " +
+              //             "Edit it, clear it, or try an example. " +
+              //             "Then try solving it again." );
+              return false;
             }
             else if( count == 1 ) {  //Only one possible value for the cell
               //Test setting this value.
@@ -245,8 +227,8 @@
               //Check if this newly-set value is valid in the grid.
               if( ! IsValidRow(i) ||
                   ! IsValidCol(j) ||
-                  ! IsValidBlock((i/3*3+j/3)) ) {
-                return;
+                  ! IsValidBlock((Math.floor(i/3)*3+Math.floor(j/3))) ) {
+                return false;
               }
 
               //It's good -- permanently set the value.
@@ -263,96 +245,52 @@
 
       if( LowestDigitsCount == 10 ) {
         //No cells left with digits to determine. All cells are set.
-        ShowMessage( "Solved!" );
-        return;
+        //ShowMessage( "Solved!" );
+        return true;
       }
 
       //Go through possible values for the selected cell.
-      let TempGrid = new Array(9).fill( new Array(9).fill(null) );
+      let TempGrid = MakeNewGrid();
 
-      let TempDigits = new Array(9).fill(
-                        new Array(9).fill(
-                         new Array(9).fill(true) ) );
+      let TempDigits = MakeNewDigitsArray();
 
       for( let k = 0; k < 9; k++ ) {
         if( Digits[Cell.I][Cell.J][k] ) {
           CopyGrid( Grid, TempGrid );
           CopyDigitsArray( Digits, TempDigits );
 
-      //Test setting this value.
-      SetValue( TempGrid, TempDigits, Cell.I+1, Cell.J+1, k+1, true );
+          //Test setting this value.
+          SetValue( TempGrid, TempDigits, Cell.I+1, Cell.J+1, k+1, true );
 
-//       //Check if this newly-set value is valid in the grid.
-//       int  bad_val;
-//       if( ! IsValidRow(Grid, Cell.I, bad_val) ||
-//           ! IsValidCol(Grid, Cell.J, bad_val) ||
-//           ! IsValidBlock(Grid, (Cell.I/3*3+Cell.J/3), bad_val) ) {
-//         //Delete temporary grid.
-//         for( int i = 0; i < 9; i++ )
-//           delete [] TempGrid[i];
-//         delete [] TempGrid;
-// 
-//         for( int i = 0; i < 9; i++ ) {
-//           for( int j = 0; j < 9; j++ )
-//             delete [] TempDigits[i][j];
-//           delete [] TempDigits[i];
-//         }
-//         delete [] TempDigits;
-// 
-//         return false;
-//       }
-// 
+          //Check if this newly-set value is valid in the grid.
+          if( ! IsValidRow(Cell.I) ||
+              ! IsValidCol(Cell.J) ||
+              ! IsValidBlock((Math.floor(Cell.I/3)*3+Math.floor(Cell.J/3))) ) {
+            return false;
+          }
+
 // ShowGrid(TempGrid); //AAA
 // char a;             //AAA
 // cin >> a;           //AAA
-// 
-//       if( Solve(TempGrid, TempDigits) ) {
-//         CopyGrid( TempGrid, Grid );
-//         CopyDigitsArray( TempDigits, Digits );
-// 
-//         //Delete temporary grid.
-//         for( int i = 0; i < 9; i++ )
-//           delete [] TempGrid[i];
-//         delete [] TempGrid;
-// 
-//         for( int i = 0; i < 9; i++ ) {
-//           for( int j = 0; j < 9; j++ )
-//             delete [] TempDigits[i][j];
-//           delete [] TempDigits[i];
-//         }
-//         delete [] TempDigits;
-// 
-//         return true;
-//       }
+
+          if( Solve(TempGrid, TempDigits) ) {
+            CopyGrid( TempGrid, Grid );
+            CopyDigitsArray( TempDigits, Digits );
+
+            return true;
+          }
         }
       }  //End loop through k
-/*
 
-  //Delete temporary grid.
-  for( int i = 0; i < 9; i++ )
-    delete [] TempGrid[i];
-  delete [] TempGrid;
+      //UnlockBoard();
 
-  for( int i = 0; i < 9; i++ ) {
-    for( int j = 0; j < 9; j++ )
-      delete [] TempDigits[i][j];
-    delete [] TempDigits[i];
-  }
-  delete [] TempDigits;
-
-  return false;
-*/
-      UnlockBoard();
+      return false;
     } //Solve
-
-    //-------------------------------------------------------------------------
-    function ShowExample( Cell ) {
-    } //ShowExample
 
     //-------------------------------------------------------------------------
     function PrintGrid( Grid ) {
       for( let i = 0; i < 9; i++ ) {
-        let line;
+        let line = '';
         if( i == 0 ) {  //Write column headers
           line += "  ";
           for( let j = 1; j <= 9; j++ ) {
@@ -413,8 +351,8 @@
                 Digits[Row-1][j][Value-1] = false;
 
             //Remove value in other block cells.
-            let m = (Row-1) / 3 * 3;
-            let n = (Col-1) / 3 * 3;
+            let m = Math.floor((Row-1) / 3) * 3;
+            let n = Math.floor((Col-1) / 3) * 3;
             for( let i = m; i < m+3; i++ ) {
               for( let j = n; j < n+3; j++ ) {
                 if( i != Row-1 || j != Col-1 ) {
@@ -438,19 +376,25 @@
     } //SetValue
 
     //-------------------------------------------------------------------------
-    function IsValidRow( Index ) {
+    function IsValidRow( Index, Verbose=false ) {
       let Value;
       let seen = new Array(9);
       for( let k = 0; k < 9; k++ )
         seen[k] = false;
 
       for( let j = 0; j < 9; j++ ) {
+        //console.log( "IsValidRow 1: Index=" + Index + " j=" + j );
         Value = Grid[Index][j];
         if( Value != null ) {
           if( ! seen[Value-1] )
             seen[Value-1] = true;
-          else
+          else {
+            if( Verbose )
+              console.log( "IsValidRow: ** " + Value +
+                           " appears more than once in " +
+                           "row " + (Index+1) + "! **" );
             return false;
+          }
         }
       }
 
@@ -458,7 +402,7 @@
     } //IsValidRow
 
     //-------------------------------------------------------------------------
-    function IsValidCol( Index ) {
+    function IsValidCol( Index, Verbose=false ) {
       let seen = new Array(9);
       for( let k = 0; k < 9; k++ )
         seen[k] = false;
@@ -468,28 +412,42 @@
         if( Value != null ) {
           if( ! seen[Value-1] )
             seen[Value-1] = true;
-          else
+          else {
+            if( Verbose )
+              console.log( "IsValidCol: ** " + Value +
+                           " appears more than once in " +
+                           "column " + (Index+1) + "! **" );
             return false;
+          }
         }
       }
 
       return true;
-    } //IsValidRow
+    } //IsValidCol
 
     //-------------------------------------------------------------------------
-    function IsValidBlock( Index ) {
+    function IsValidBlock( Index, Verbose=false ) {
       let seen = new Array(9);
       for( let k = 0; k < 9; k++ )
         seen[k] = false;
 
       for( let i = 0; i < 3; i++ ) {
         for( let j = 0; j < 3; j++ ) {
-          Value = Grid[Index/3*3+i][Index%3*3+j];
+          let r = Math.floor( Index/3 ) * 3 + i;
+          let c =  Index % 3 * 3 + j;
+          console.log( "IsValidBlock 1: Index=" + Index +
+                       " i=" + i + " j=" + j + " r=" + r + " c=" + c );
+          Value = Grid[r][c];
           if( Value != null ) {
             if( ! seen[Value-1] )
               seen[Value-1] = true;
-            else
+            else {
+              if( Verbose )
+                console.log( "IsValidBlock: ** " + Value +
+                             " appears more than once in " +
+                             "a block" + "! **" );
               return false;
+            }
           }
         }
       }
@@ -537,195 +495,114 @@
             Digits2[i][j][k] = Digits1[i][j][k];
     } //CopyDigitsArray
 
-
-/*
-enum Dimensions { ROW, COL, BLOCK };
-
-char ParseCommand( string s, int &Row, int &Col, int &Value );
-bool CheckGrid( char** Grid, bool Verbose=false );
-int  CountEmptyCells( char** Grid );
-
-//===========================================================================
-int main( int argc, char** argv ) {
-  //Initialize grid & digits array.
-  bool*** Digits = MakeNewDigitsArray();
-  char** Grid = MakeNewGrid();
-
-//AAA
-//SetValue( Grid, Digits, 1, 5, 4, true );
-//SetValue( Grid, Digits, 1, 6, 3, true );
-//SetValue( Grid, Digits, 2, 3, 2, true );
-//SetValue( Grid, Digits, 2, 6, 6, true );
-//SetValue( Grid, Digits, 2, 9, 8, true );
-//SetValue( Grid, Digits, 3, 4, 2, true );
-//SetValue( Grid, Digits, 3, 7, 1, true );
-//SetValue( Grid, Digits, 3, 8, 5, true );
-//SetValue( Grid, Digits, 4, 2, 3, true );
-//SetValue( Grid, Digits, 4, 3, 9, true );
-//SetValue( Grid, Digits, 4, 5, 2, true );
-//SetValue( Grid, Digits, 4, 7, 5, true );
-//SetValue( Grid, Digits, 5, 3, 8, true );
-//SetValue( Grid, Digits, 5, 4, 6, true );
-//SetValue( Grid, Digits, 5, 5, 3, true );
-//SetValue( Grid, Digits, 5, 6, 1, true );
-//SetValue( Grid, Digits, 5, 7, 9, true );
-//SetValue( Grid, Digits, 6, 3, 7, true );
-//SetValue( Grid, Digits, 6, 5, 8, true );
-//SetValue( Grid, Digits, 6, 7, 3, true );
-//SetValue( Grid, Digits, 6, 8, 6, true );
-//SetValue( Grid, Digits, 7, 2, 8, true );
-//SetValue( Grid, Digits, 7, 3, 6, true );
-//SetValue( Grid, Digits, 7, 6, 2, true );
-//SetValue( Grid, Digits, 8, 1, 4, true );
-//SetValue( Grid, Digits, 8, 4, 1, true );
-//SetValue( Grid, Digits, 8, 7, 2, true );
-//SetValue( Grid, Digits, 9, 4, 3, true );
-//SetValue( Grid, Digits, 9, 5, 6, true );
-SetValue( Grid, Digits, 1, 3, 7, true );
-SetValue( Grid, Digits, 1, 7, 4, true );
-SetValue( Grid, Digits, 1, 8, 6, true );
-SetValue( Grid, Digits, 2, 2, 8, true );
-SetValue( Grid, Digits, 2, 5, 9, true );
-SetValue( Grid, Digits, 2, 6, 4, true );
-SetValue( Grid, Digits, 2, 9, 2, true );
-SetValue( Grid, Digits, 3, 5, 2, true );
-SetValue( Grid, Digits, 3, 6, 1, true );
-SetValue( Grid, Digits, 4, 1, 7, true );
-SetValue( Grid, Digits, 4, 2, 6, true );
-SetValue( Grid, Digits, 4, 7, 5, true );
-SetValue( Grid, Digits, 5, 5, 4, true );
-SetValue( Grid, Digits, 6, 3, 5, true );
-SetValue( Grid, Digits, 6, 8, 2, true );
-SetValue( Grid, Digits, 6, 9, 3, true );
-SetValue( Grid, Digits, 7, 4, 4, true );
-SetValue( Grid, Digits, 7, 5, 8, true );
-SetValue( Grid, Digits, 8, 1, 1, true );
-SetValue( Grid, Digits, 8, 4, 9, true );
-SetValue( Grid, Digits, 8, 5, 7, true );
-SetValue( Grid, Digits, 8, 8, 4, true );
-SetValue( Grid, Digits, 9, 2, 9, true );
-SetValue( Grid, Digits, 9, 3, 2, true );
-SetValue( Grid, Digits, 9, 7, 3, true );
-//AAA
-
-  do {
-    if( command == '?' )
-      cout << "\nPlease enter the initial setup of the puzzle. Type:\n"
-           << "  * 'a' - followed by a digit, then a pair of coordinates "
-           << "(row, column) to add a digit.\n"
-           << "          E.g. 'a 7 5 4' puts a '4' in the 7th row, 5th "
-           << "column.\n"
-           << "  * 'd' - followed by a pair of coordinates to delete a digit"
-           << "\n"
-           << "          E.g. 'd 3 8' deletes the digit (if there is one) in "
-           << "the 3rd row, 8th column.\n"
-           << "  * 'p' - to print the grid.\n"
-           << "  * 's' - to solve the puzzle.\n"
-           << "  * 'q' - to quit.\n"
-           << "  * '?' - to display these instructions again." << endl;
-    else if( command == 'p' )
-      ShowGrid( Grid );
-    else if( command == 'a' ) {
-      SetValue( Grid, Digits, row, col, val, true );
-    }
-    else if( command == 'd' ) {
-      if( row >= 1 && row <= 9 && col >= 1 && col <= 9 ) {
-        Grid[row-1][col-1] = EMPTY;
-        for( int k = 0; k < 9; k++ )
-          Digits[row-1][col-1][k] = true;
+    //-------------------------------------------------------------------------
+    function CheckGrid( Grid, Verbose ) {
+      //Check for invalid digit values.
+      for( let i = 0; i < 9; i++ ) {
+        for( let j = 0; j < 9; j++ ) {
+          let val = Grid[i][j];
+          if( val == null ) {}
+          else if( val < 0 || val > 9 ) {
+            if( Verbose )
+              console.log( "CheckGrid: ** Invalid value at (" +
+                           (i+1) + ", " + (j+1) +
+                           "): " + val + "! **" );
+            return false;
+          }
+        }
       }
-      else
-        cout << "** Coordinates are out-of-bounds! Please try again. **"
-             << endl;
-    }
 
-    if( command != 'a' && command != 'd' && command != 'p' &&
-        command != 's' && command != '?' && command != 'q' ) {
-      cout << "** Unrecognized command! Please try again. ** " << endl;
-    }
-    else if( command == 's' ) {
+      //Check rows.
+      for( let i = 0; i < 9; i++ )
+        if( ! IsValidRow(i, Verbose) )
+          return false;
+
+      //Check columns.
+      for( let j = 0; j < 9; j++ )
+        if( ! IsValidCol(j, Verbose) )
+          return false;
+
+      //Check 3x3 blocks.
+      for( let m = 0; m < 9; m++ )
+        if( ! IsValidBlock(m, Verbose) )
+          return false;
+
+      return true;
+    } //CheckGrid
+
+    //-------------------------------------------------------------------------
+    function AttemptSolve() {
+      //LockBoard();
+
+      //Set up grid.
+      Grid = MakeNewGrid();
+
+      //Set up digits array.
+      Digits = MakeNewDigitsArray();
+      for( let i = 0; i < 9; i++ ) {
+        for( let j = 0; j < 9; j++ ) {
+          let cell_name = "cell_" + i + '' + j;
+          let value = document.getElementById( cell_name ).value;
+          if( value != '' && ! isNaN(value) ) {
+            console.log( "AttemptSolve 1: Setting value for ("+i+", "+j+") to "+
+                         value );
+            SetValue( Grid, Digits, i+1, j+1, value, true );
+          }
+          else
+            Grid[i][j] = null;
+        }
+      }
+
+      PrintGrid( Grid );
+
       //Check current grid setup is valid.
       if( ! CheckGrid(Grid, true) ) {
-        cout << "** The current grid is invalid! Please check it and try "
-             << "again. **" << endl;
-        command = ' ';
+        ShowMessage( "The grid is invalid! " +
+                     "Please check it and try again." );
       }
-    }
-  } while( command != 's' && command != 'q' );
+      else {
+        //Solve the puzzle.
+        let Solved = Solve( Grid, Digits );
 
-  //Solve the puzzle.
-  bool Solved = Solve( Grid, Digits );
-
-  if( Solved ) {
-    cout << "Solved!" << endl;
-    ShowGrid( Grid );
-  }
-  else
-    cout << "Sorry! The puzzle is unsolvable." << endl;
-
-//---------------------------------------------------------------------------
-bool CheckGrid( char** Grid, bool Verbose ) {
-  //Check for invalid digit values.
-  for( int i = 0; i < 9; i++ ) {
-    for( int j = 0; j < 9; j++ ) {
-      int val = Grid[i][j];
-      if( val == EMPTY ) {}
-      else if( val < 0 || val > 9 ) {
-        if( Verbose )
-          cout << "CheckGrid: ** Invalid value at (" << (i+1) << ", " << (j+1)
-               << "): " << val << "! **" << endl;
-        return false;
+        if( Solved ) {
+          ShowMessage( "Solved!", true );
+          PrintGrid( Grid );
+        }
+        else
+          ShowMessage( "Sorry! The puzzle is unsolvable.", true );
+          PrintGrid( Grid );
       }
-    }
-  }
 
-  int val;
+      //UnlockBoard();
+    } //AttemptSolve
 
-  //Check rows.
-  for( int i = 0; i < 9; i++ ) {
-    if( ! IsValidRow(Grid, i, val) ) {
-      if( Verbose )
-        cout << "CheckGrid: ** " << val << " appears more than once in "
-             << "row " << (i+1) << "! **" << endl;
-        return false;
-    }
-  }
+    //-------------------------------------------------------------------------
+    function ShowExample() {
+      let Puzzles = {
+            "A":[ [1, 5, 4],[1, 6, 3],[2, 3, 2],[2, 6, 6],[2, 9, 8],[3, 4, 2],
+                  [3, 7, 1],[3, 8, 5],[4, 2, 3],[4, 3, 9],[4, 5, 2],[4, 7, 5],
+                  [5, 3, 8],[5, 4, 6],[5, 5, 3],[5, 6, 1],[5, 7, 9],[6, 3, 7],
+                  [6, 5, 8],[6, 7, 3],[6, 8, 6],[7, 2, 8],[7, 3, 6],[7, 6, 2],
+                  [8, 1, 4],[8, 4, 1],[8, 7, 2],[9, 4, 3],[9, 5, 6] ],
+            "B":[ [1, 3, 7],[1, 7, 4],[1, 8, 6],[2, 2, 8],[2, 5, 9],[2, 6, 4],
+                  [2, 9, 2],[3, 5, 2],[3, 6, 1],[4, 1, 7],[4, 2, 6],[4, 7, 5],
+                  [5, 5, 4],[6, 3, 5],[6, 8, 2],[6, 9, 3],[7, 4, 4],[7, 5, 8],
+                  [8, 1, 1],[8, 4, 9],[8, 5, 7],[8, 8, 4],[9, 2, 9],[9, 3, 2],
+                  [9, 7, 3] ],
+          };
 
-  //Check columns.
-  for( int j = 0; j < 9; j++ ) {
-    if( ! IsValidCol(Grid, j, val) ) {
-      if( Verbose )
-        cout << "CheckGrid: ** " << val << " appears more than once in "
-             << "column " << (j+1) << "! **" << endl;
-      return false;
-    }
-  }
+      Clear();
 
-  //Check 3x3 blocks.
-  for( int m = 0; m < 9; m++ ) {
-    if( ! IsValidBlock(Grid, m, val) ) {
-      if( Verbose )
-        cout << "CheckGrid: ** " << val << " appears more than once in "
-             << "a block" << "! **" << endl;
-      return false;
-    }
-  }
+      let p = "B";
+      let digits = Puzzles[p];
+      for( i in digits ) {
+        let cell_name = "cell_" + (digits[i][0]-1) + '' + (digits[i][1]-1);
+        document.getElementById( cell_name ).value = digits[i][2];
+      }
 
-  return true;
-} //CheckGrid
+      document.getElementById( "clear_btn" ).style.visibility = 'visible';
+    } //ShowExample
 
-//---------------------------------------------------------------------------
-int  CountEmptyCells( char** Grid ) {
-  int count = 0;
-  for( int i = 0; i < 9; i++ )
-    for( int j = 0; j < 9; j++ )
-      if( Grid[i][j] == EMPTY )
-        count++;
-
-  return count;
-} //CountEmptyCells
-
-*/
   </script>
 </head>
 <body>
@@ -739,7 +616,7 @@ int  CountEmptyCells( char** Grid ) {
     <input type="button" value="" id="fake_btn" class="btn"
            onclick=";" />
     <input type="button" value="Solve" id="solve_btn" class="btn"
-           onclick="Solve();" />
+           onclick="AttemptSolve();" />
     <input type="button" value="Show Example" id="example_btn" class="btn"
            onclick="ShowExample();" />
     <input type="button" value="Clear" id="clear_btn" class="btn"
