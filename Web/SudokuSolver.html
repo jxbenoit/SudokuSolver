@@ -93,7 +93,9 @@
   </style>
   <script type='text/javascript'>
     var Grid, Digits;
-    var SolveCallDepth = 0;  //Safety for recursive calls
+    var SolveCallDepth = 0;
+    var DelayInterval = 200; //In ms
+    var DelayTime;
 
     //-------------------------------------------------------------------------
     window.onload = function() {
@@ -146,7 +148,7 @@
 
     //-------------------------------------------------------------------------
     function ResetBoard() {
-      SolveCallDepth = 0;
+      SolveCallDepth = DelayTime = 0;
       for( let i = 0; i < 9; i++ ) {
         for( let j = 0; j < 9; j++ ) {
           let cell_name = "cell_" + i + '' + j;
@@ -185,7 +187,10 @@
     } //Clear
 
     //-------------------------------------------------------------------------
-    function ShowMessage( Msg, ShowClearBtn=true ) {
+    async function ShowMessage( Msg, ShowClearBtn=true, Delay=true ) {
+      if( Delay )
+        await Sleep( DelayTime );
+
       UnlockBoard();
 
       document.getElementById( "messages" ).innerHTML = Msg;
@@ -196,7 +201,6 @@
 
     //-------------------------------------------------------------------------
     function Solve( Grid, Digits ) {
-      //await Sleep( 1000 );
 
       //Recursive call safety stop.
       SolveCallDepth++;
@@ -312,7 +316,10 @@
     } //Sleep
 
     //-------------------------------------------------------------------------
-    function SetDigitInPage( Row, Col, Value ) {
+    async function SetDigitInPage( Row, Col, Value ) {
+      DelayTime += DelayInterval;
+      await Sleep( DelayTime );
+
       if( Value == null )
         Value = "";
 
@@ -589,7 +596,7 @@
       }
       else { //Solve the puzzle.
         if( Solve( Grid, Digits ) )
-          ShowMessage( "Solved!", true );
+          ShowMessage( "Solved!", true, true );
         else
           ShowMessage( "Sorry! The puzzle is unsolvable.", true );
 
