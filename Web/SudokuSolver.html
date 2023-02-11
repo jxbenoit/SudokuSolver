@@ -90,16 +90,35 @@
       font-size:14pt;
       color:black;
     }
+    #slider_div {
+      margin-top:20pt;
+    }
+    #Slider {
+      margin:auto;
+      width:200px;
+      height:30px;
+      border-collapse: collapse;
+      border-spacing: 0;
+    }
+    #Slider tr td {
+      width:30px;
+      height:12px;
+    }
+    #range {
+      width:90%;
+    }
   </style>
   <script type='text/javascript'>
     var Grid, Digits;
     var SolveCallDepth = 0;
-    var DelayInterval = 200; //In ms
+    var DelayInterval = 100; //In ms
     var DelayTime;
+    var DigitsToDisplay = {} //Will hold digits that are abt to be shown
 
     //-------------------------------------------------------------------------
     window.onload = function() {
       SetUpBoard();
+      SetUpSlider();
       Clear();
     };//Onload
 
@@ -564,10 +583,43 @@
     } //CheckGrid
 
     //-------------------------------------------------------------------------
+    function SetUpSlider() {
+      let range = document.createElement( "INPUT" );
+      range.id = "range";
+      range.type = "range";
+      range.min="0";
+      range.max="100";
+      range.value="50";
+      range.oninput = function() {
+        DelayInterval = this.value * 2;
+      };
+
+      //Create main slider area.
+      let slider_div = document.getElementById( "slider_div" );
+      let tab = document.createElement( "TABLE" );
+      tab.id = "Slider";
+
+      let row = document.createElement( "TR" );
+      let td = document.createElement( "TD" );
+      td.colSpan = "6";
+      td.appendChild( range );
+      row.appendChild( td );
+      tab.appendChild( row );
+
+      row = document.createElement( "TR" );
+      for( let i = 0; i < 6; i++ ) {
+        td = document.createElement( "TD" );
+        td.innerHTML = i;
+        row.appendChild( td );
+      }
+      tab.appendChild( row );
+
+      slider_div.appendChild( tab );
+    } //SetUpSlider
+
+    //-------------------------------------------------------------------------
     async function AttemptSolve() {
       LockBoard();
-
-      //await Sleep( 1000 );
 
       //Set up grid.
       Grid = MakeNewGrid();
@@ -653,5 +705,6 @@
     <input type="button" value="Clear" id="clear_btn" class="btn"
            onclick="Clear();" />
   </div>
+  <div id="slider_div">Solve delay:<br /></div>
 </body>
 </html>
