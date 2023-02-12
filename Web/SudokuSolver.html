@@ -329,15 +329,28 @@
       Use it like this:
         await Sleep( 1000 );
       The function it is used in must be async.
+      DigitsToDisplay tracks timeout ids and changes to the grid.
     */
-    function Sleep( MS ) {
-      return new Promise( resolve => setTimeout(resolve, MS) );
+    function Sleep( MS, Key=null, Row=null, Col=null, Value=null ) {
+      let id;
+      let p = new Promise( resolve => { id = setTimeout(resolve, MS) } );
+
+      if( Key != null ) {
+        DigitsToDisplay[Key] = { "id":id, "row":Row, "col":Col, "val":Value };
+      }
+
+      return p;
     } //Sleep
 
     //-------------------------------------------------------------------------
     async function SetDigitInPage( Row, Col, Value ) {
       DelayTime += DelayInterval;
-      await Sleep( DelayTime );
+      let key = Row + "_" + Col + "_" + Value;
+      await Sleep( DelayTime, key, Row, Col, Value );
+
+      if( key in DigitsToDisplay ) {
+        delete DigitsToDisplay[key];  //Remove entry for this digit change
+      }
 
       if( Value == null )
         Value = "";
@@ -592,6 +605,24 @@
       range.value="50";
       range.oninput = function() {
         DelayInterval = this.value * 2;
+
+        //The current timeouts need to be canceled and restarted with the new
+        //new delay interval.
+        for( const [key, value] of Object.entries(DigitsToDisplay) ) {
+//          clearTimeout( value["id"] );
+
+/*
+    async function SetDigitInPage( Row, Col, Value ) {
+
+      let p = new Promise( resolve => { id = setTimeout(resolve, MS) } );
+
+      if( Key != null ) {
+        DigitsToDisplay[Key] = { "id":id, "row":Row, "col":Col, "val":Value };
+
+console.log( key + " " + value["id"] + " " +value["row"] );
+*/
+//AAA
+        }
       };
 
       //Create main slider area.
