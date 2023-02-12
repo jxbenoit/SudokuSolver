@@ -107,6 +107,99 @@
     #range {
       width:90%;
     }
+
+    @keyframes glowing {
+      0% {
+        background-color: #2ba805;
+        box-shadow: 0 0 5px #2ba805;
+      }
+      100% {
+        background-color: #ffffff;
+        box-shadow: 0 0 5px #dddddd;
+      }
+    }
+
+    @keyframes glowing1 {
+      0% {
+        background-color: blue;
+        box-shadow: 0 0 5px blue;
+      }
+      100% {
+        background-color: #ffffff;
+        box-shadow: 0 0 5px #dddddd;
+      }
+    }
+    @keyframes glowing2 {
+      0% {
+        background-color: green;
+        box-shadow: 0 0 5px green;
+      }
+      100% {
+        background-color: #ffffff;
+        box-shadow: 0 0 5px #dddddd;
+      }
+    }
+    @keyframes glowing3 {
+      0% {
+        background-color: gold;
+        box-shadow: 0 0 5px gold;
+      }
+      100% {
+        background-color: #ffffff;
+        box-shadow: 0 0 5px #dddddd;
+      }
+    }
+    @keyframes glowing4 {
+      0% {
+        background-color: orange;
+        box-shadow: 0 0 5px orange;
+      }
+      100% {
+        background-color: #ffffff;
+        box-shadow: 0 0 5px #dddddd;
+      }
+    }
+    @keyframes glowing5 {
+      0% {
+        background-color: red;
+        box-shadow: 0 0 5px red;
+      }
+      100% {
+        background-color: #ffffff;
+        box-shadow: 0 0 5px #dddddd;
+      }
+    }
+    @keyframes glowing6 {
+      0% {
+        background-color: brown;
+        box-shadow: 0 0 5px brown;
+      }
+      100% {
+        background-color: #ffffff;
+        box-shadow: 0 0 5px #dddddd;
+      }
+    }
+    @keyframes glowing7 {
+      0% {
+        background-color: purple;
+        box-shadow: 0 0 5px purple;
+      }
+      100% {
+        background-color: #ffffff;
+        box-shadow: 0 0 5px #dddddd;
+      }
+    }
+    @keyframes glowing8 {
+      0% {
+        background-color: pink;
+        box-shadow: 0 0 5px pink;
+      }
+      100% {
+        background-color: #ffffff;
+        box-shadow: 0 0 5px #dddddd;
+      }
+    }
+
   </style>
   <script type='text/javascript'>
     var Grid, Digits;
@@ -114,6 +207,8 @@
     var DelayInterval = 100; //In ms
     var DelayTime;
     var DigitsToDisplay = {} //Will hold digits that are abt to be shown
+    const Colors = [ "blue", "green", "gold", "orange", "red", "brown",
+                      "purple", "pink" ];
 
     //-------------------------------------------------------------------------
     window.onload = function() {
@@ -254,13 +349,16 @@
             else if( count == 1 ) {  //Only one possible value for the cell
               //Test setting this value.
               SetValue( Grid, Digits, i+1, j+1, last_value );
-              SetDigitInPage( i+1, j+1, last_value );
+              SetDigitInPage( i+1, j+1, last_value, SolveCallDepth );
 
               //Check if this newly-set value is valid in the grid.
               if( ! IsValidRow(i) ||
                   ! IsValidCol(j) ||
                   ! IsValidBlock((Math.floor(i/3)*3+Math.floor(j/3))) ) {
-                SetDigitInPage( i+1, j+1, null );
+//                SetDigitInPage( i+1, j+1, null, Colors[SolveCallDepth-1] );
+//                 SetDigitInPage( i+1, j+1, null,
+//                    "rgb("+(SolveCallDepth*20)+",0,"+(SolveCallDepth*20)+")" );
+                SetDigitInPage( i+1, j+1, null, SolveCallDepth );
                 SolveCallDepth--;
                 return false;
               }
@@ -295,7 +393,10 @@
 
           //Test setting this value.
           SetValue( TempGrid, TempDigits, Cell.I+1, Cell.J+1, k+1, true );
-          SetDigitInPage( Cell.I+1, Cell.J+1, k+1 );
+//          SetDigitInPage( Cell.I+1, Cell.J+1, k+1, Colors[SolveCallDepth-1] );
+//           SetDigitInPage( Cell.I+1, Cell.J+1, k+1,
+//                    "rgb("+(SolveCallDepth*20)+",0,"+(SolveCallDepth*20)+")" );
+          SetDigitInPage( Cell.I+1, Cell.J+1, k+1, SolveCallDepth );
 
           //Check if this newly-set value is valid in the grid.
           if( ! IsValidRow(Cell.I) ||
@@ -333,17 +434,20 @@
     */
     function Sleep( MS, Key=null, Row=null, Col=null, Value=null ) {
       let id;
-      let p = new Promise( resolve => { id = setTimeout(resolve, MS) } );
-
-      if( Key != null ) {
-        DigitsToDisplay[Key] = { "id":id, "row":Row, "col":Col, "val":Value };
-      }
+      let p = new Promise(
+                   resolve => {
+                     id = setTimeout( resolve, MS );
+                     if( Key != null ) {
+                       DigitsToDisplay[Key] = { "id":id, "row":Row, "col":Col,
+                                                "val":Value };
+                     }
+                   } );
 
       return p;
     } //Sleep
 
     //-------------------------------------------------------------------------
-    async function SetDigitInPage( Row, Col, Value ) {
+    async function SetDigitInPage( Row, Col, Value, Level=1) {
       DelayTime += DelayInterval;
       let key = Row + "_" + Col + "_" + Value;
       await Sleep( DelayTime, key, Row, Col, Value );
@@ -355,9 +459,20 @@
       if( Value == null )
         Value = "";
 
-      let cell = "cell_" + (Row-1) + '' + (Col-1);
+      let cell_id = "cell_" + (Row-1) + '' + (Col-1);
 
-      document.getElementById( cell ).value = Value;
+      let cell = document.getElementById( cell_id );
+      cell.value = Value;
+      cell.style.color = Colors[Level];
+
+      cell.style.animationName = "none";
+      requestAnimationFrame(() => {
+        setTimeout(() => {
+          cell.style.animationName = ""
+        }, 1000);
+      });
+
+      cell.style.animation = "glowing"+Level+" 1500ms 1";
     } //SetDigitInPage
 
     //-------------------------------------------------------------------------
@@ -608,20 +723,13 @@
 
         //The current timeouts need to be canceled and restarted with the new
         //new delay interval.
+        DelayTime = 0;
         for( const [key, value] of Object.entries(DigitsToDisplay) ) {
-//          clearTimeout( value["id"] );
-
-/*
-    async function SetDigitInPage( Row, Col, Value ) {
-
-      let p = new Promise( resolve => { id = setTimeout(resolve, MS) } );
-
-      if( Key != null ) {
-        DigitsToDisplay[Key] = { "id":id, "row":Row, "col":Col, "val":Value };
-
-console.log( key + " " + value["id"] + " " +value["row"] );
-*/
-//AAA
+        let [row, col, val] = key.split( '_' );
+          if( val == "null" )
+            val = null;
+          clearTimeout( value["id"] );
+          SetDigitInPage( row, col, val );
         }
       };
 
